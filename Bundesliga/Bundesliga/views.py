@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from django.http import HttpResponse, HttpRequest
 
 from .settings import start_time

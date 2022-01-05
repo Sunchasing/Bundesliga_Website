@@ -13,7 +13,7 @@ import datetime
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-from .secret import DJANGO_SECRET
+from .secret import DJANGO_SECRET, DB_Password
 start_time = datetime.datetime.now()
 
 
@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'Bundesliga',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -78,8 +80,12 @@ WSGI_APPLICATION = 'Bundesliga.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'BundesligaDB',
+        'USER': 'postgres',
+        'PASSWORD': DB_Password,
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
 
