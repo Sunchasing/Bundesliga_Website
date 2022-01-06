@@ -11,17 +11,14 @@ class Match(models.Model):
     league_shortcut = models.CharField(max_length=32)
     match_date_time_utc = models.DateTimeField()
 
-    group_id = models.BigIntegerField()
-    team_one_id = models.BigIntegerField()
-    team_two_id = models.BigIntegerField()
+    group_id = models.BigIntegerField()  # fk to groups
+    team_one_id = models.BigIntegerField()  # fk to teams
+    team_two_id = models.BigIntegerField()  # fk to teams
 
     last_update = models.DateTimeField()
-    match_is_finished = models.BooleanField(default=False)
-    location = models.CharField(max_length=255, default=None)
-    number_of_viewers = models.IntegerField(default=None)
-
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True)
+    match_is_finished = models.BooleanField(null=True)
+    location = models.CharField(max_length=255, null=True)
+    number_of_viewers = models.IntegerField(null=True)
 
 
 class Team(models.Model):
@@ -29,19 +26,14 @@ class Team(models.Model):
     team_name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=120)
     team_icon_url = models.URLField()
-    team_group_name = models.CharField(max_length=255)
-
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True)
+    team_group_name = models.CharField(max_length=255, null=True)
 
 
 class Group(models.Model):
     group_id = models.BigIntegerField(primary_key=True)
     group_name = models.CharField(max_length=120)
     group_order_id = models.IntegerField(null=True)
-
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True)
+    year = models.IntegerField()
 
 
 class Result(models.Model):
@@ -51,28 +43,21 @@ class Result(models.Model):
     points_team_two = models.IntegerField()
     result_order_id = models.IntegerField()
     result_type_id = models.IntegerField()
-    result_description = models.CharField(max_length=500)
+    result_description = models.CharField(max_length=500, null=True)
 
-    goal_id = models.BigIntegerField()
-    match_id = models.BigIntegerField()
-
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True)
+    match_id = models.BigIntegerField()  # fk to matches
 
 
 class Goal(models.Model):
     goal_id = models.BigIntegerField(primary_key=True)
-    points_team_one = models.IntegerField()
-    points_team_two = models.IntegerField()
-    match_minute = models.IntegerField()
-    goal_getter_id = models.IntegerField()
-    goal_getter_name = models.CharField(max_length=120)
-    is_penalty = models.BooleanField()
-    is_own_goal = models.BooleanField()
-    is_overtime = models.BooleanField()
-    comment = models.CharField(max_length=500, default='')
+    points_team_one = models.IntegerField(null=True)
+    points_team_two = models.IntegerField(null=True)
+    match_minute = models.IntegerField(null=True)
+    goal_getter_id = models.IntegerField(null=True)
+    goal_getter_name = models.CharField(max_length=120, null=True)
+    is_penalty = models.BooleanField(default=False)
+    is_own_goal = models.BooleanField(default=False)
+    is_overtime = models.BooleanField(default=False)
+    comment = models.CharField(max_length=500, null=True)
 
-    match_id = models.BigIntegerField()
-
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True)
+    match_id = models.BigIntegerField()  # fk to matches
