@@ -1,9 +1,10 @@
 import dataclasses
 import datetime
-from typing import Any
+from typing import Any, List
 
 from django.db import connection
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 
 from .mixins import BundesligaAPIMixin, ObjectSearchMixin
@@ -121,13 +122,33 @@ class UpdateView(DetailView, BundesligaAPIMixin, ObjectSearchMixin):
         return HttpResponse(f'Download performed. Time taken: {time_taken_s:.2f} seconds')
 
 
-class MatchStatistics(ListView):
+@dataclasses.dataclass
+class UpcomingMatch:
+    match_date_time: datetime.datetime
+    time_zone: str
+    scheduled_start: datetime.timedelta
+    team_one_name: str
+    team_two_name: str
+    location: str
 
-    def _query_upcoming_matches_for_team(self, team: int = None):
-        ...
 
-    def get(self, request, *args, **kwargs):
-        ...
+class UpcomingMatches(ListView):
+
+    def _query_upcoming_all_matches(self) -> List[UpcomingMatch]:
+        query = _read_file('./api/sql/upcoming_matches_for_season.sql')
+        query = query.format(league_season=datetime.datetime.now().year - 1)
+        with connection.cursor() as cur:
+            cur.execute(query)
+            matches = cur.fetchall()
+
+        return [UpcomingMatch(*match) for match in matches]
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        results = self._query_upcoming_all_matches()
+        context = {
+            'matches': results
+        }
+        return render(request, template_name='./api/UpcomingMatches.html', context=context)
 
 
 @dataclasses.dataclass
@@ -141,7 +162,7 @@ class TeamSeasonStats:
 
 class TeamView(DetailView):
 
-    def _calc_team_stats(self, team_id: id, season_year: int = None):
+    def _calc_team_stats(self, team_id: id, season_year: int = None) -> TeamSeasonStats:
         season_year = season_year or datetime.datetime.now().year - 1
         query = _read_file('./api/sql/team_win_loss.sql')
         query = query.format(team_id=team_id, league_season=season_year)
