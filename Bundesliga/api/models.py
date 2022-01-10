@@ -7,7 +7,7 @@ class Match(models.Model):
     time_zone_id = models.CharField(max_length=120)
     league_id = models.IntegerField(null=False)
     league_name = models.CharField(max_length=120)
-    league_season = models.CharField(max_length=120)
+    league_season = models.IntegerField()
     league_shortcut = models.CharField(max_length=32)
     match_date_time_utc = models.DateTimeField()
 
