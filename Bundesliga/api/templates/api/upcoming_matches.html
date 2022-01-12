@@ -1,0 +1,23 @@
+
+{% extends "api/base.html" %}
+{% block content %}
+    {% if matches %}
+        {%for match in matches%}
+            <div>
+                <h4>
+                    <img src ={{match.t1_img_url}}  width="32" height="32" alt="">
+                    <a href="{% url 'home' %}../teams/{{match.team_one_id}}"> {{match.team_one_name}} </a>
+                    vs.
+                    <a href="{% url 'home' %}../teams/{{match.team_two_id}}"> {{match.team_two_name}} <img src ={{match.t2_img_url}}  width="32" height="32" alt=""> </a>
+                </h4>
+            </div>
+
+            <div>Scheduled date:        {{match.match_date_time}} TZ {{match.time_zone}}</div>
+            <div>Time before match:     {{match.scheduled_start}}</div>
+            <div>Location:              {{match.location}}</div>
+            <br>
+        {%endfor%}
+
+    {%endif%}
+
+{% endblock content %}

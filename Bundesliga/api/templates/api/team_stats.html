@@ -1,0 +1,26 @@
+
+
+{% extends "api/base.html" %}
+{% block content %}
+<article class="media content-section">
+    <div class="media-body">
+        <div class="article-metadata">
+            {% if team_stats%}
+
+            <h4>
+                <img src ={{team_stats.team_img_url}}  width="32" height="32" alt="">
+                <a> {{team_stats.team_name}} </a>
+            </h4>
+                <div> Wins: {{team_stats.wins}}</div>
+                <div> Draws: {{team_stats.draws}}</div>
+                <div> Losses: {{team_stats.losses}}</div>
+                <div> Win/Loss ratio: {{team_stats.wl_ratio}}</div>
+                <div> Percent games won: {{team_stats.win_percent}}%</div>
+                <a class="navbar-brand mr-2" href="./upcoming">Upcoming Matches</a>
+            {% else %}
+                <div> Team not found</div>
+            {% endif %}
+        </div>
+    </div>
+</article>
+{% endblock content %}

@@ -1,13 +1,12 @@
 import dataclasses
 import datetime
-from typing import Any, List
+from typing import Any
 
-from django.db import connection
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 
-from .mixins import BundesligaAPIMixin, ObjectSearchMixin
+from .mixins import BundesligaAPIMixin, ObjectSearchMixin, QueryMixin
 from .models import Team, Group, Goal, Match, Result
 
 
@@ -129,26 +128,25 @@ class UpcomingMatch:
     scheduled_start: datetime.timedelta
     team_one_name: str
     team_two_name: str
+    team_one_id: int
+    team_two_id: int
+    t1_img_url: str
+    t2_img_url: str
     location: str
 
 
-class UpcomingMatches(ListView):
-
-    def _query_upcoming_all_matches(self) -> List[UpcomingMatch]:
-        query = _read_file('./api/sql/upcoming_matches_for_season.sql')
-        query = query.format(league_season=datetime.datetime.now().year - 1)
-        with connection.cursor() as cur:
-            cur.execute(query)
-            matches = cur.fetchall()
-
-        return [UpcomingMatch(*match) for match in matches]
+class UpcomingMatches(QueryMixin, ListView):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        results = self._query_upcoming_all_matches()
+        results = self.run_query(
+            sql_filepath='./api/sql/upcoming_matches_for_season.sql',
+            league_season=datetime.datetime.now().year - 1
+        )
+        matches = [UpcomingMatch(*match) for match in results]
         context = {
-            'matches': results
+            'matches': matches
         }
-        return render(request, template_name='./api/UpcomingMatches.html', context=context)
+        return render(request, template_name='./api/upcoming_matches.html', context=context)
 
 
 @dataclasses.dataclass
@@ -158,34 +156,73 @@ class TeamSeasonStats:
     losses: int
     wl_ratio: float
     win_percent: float
+    team_id: int
+    team_name: str
+    team_img_url: str
 
 
-class TeamView(DetailView):
-
-    def _calc_team_stats(self, team_id: id, season_year: int = None) -> TeamSeasonStats:
-        season_year = season_year or datetime.datetime.now().year - 1
-        query = _read_file('./api/sql/team_win_loss.sql')
-        query = query.format(team_id=team_id, league_season=season_year)
-        with connection.cursor() as cur:
-            cur.execute(query)
-            team_results = cur.fetchone()
-
-        return TeamSeasonStats(
-            wins=team_results[0],
-            draws=team_results[1],
-            losses=team_results[2],
-            wl_ratio=team_results[0] / team_results[2],
-            win_percent=team_results[0] / sum(team_results) * 100
-        )
+class TeamView(QueryMixin, DetailView):
 
     def get(self, request: HttpRequest, team_id: int, *args, **kwargs) -> HttpResponse:
-        results: TeamSeasonStats = self._calc_team_stats(team_id=team_id, season_year=request.GET['season'])
-        return HttpResponse(
-            f'''
-            wins={results.wins}\n;
-            draws={results.draws}\n;
-            losses={results.losses}\n;
-            wl_ratio={results.wl_ratio:.2f}\n;
-            win_percent={results.win_percent:.2f}%;
-            '''
+        result = self.run_query(
+            sql_filepath='./api/sql/team_win_loss.sql',
+            team_id=team_id,
+            league_season=request.GET.get('season') or datetime.datetime.now().year - 1
+        )[0]
+
+        team_stats = TeamSeasonStats(
+            wins=result[0],
+            draws=result[1],
+            losses=result[2],
+            wl_ratio=round(result[0] / result[2], 2),
+            win_percent=round(result[0] / sum(result[:2]) * 100, 2),
+            team_id=result[3],
+            team_img_url=result[4],
+            team_name=result[5],
         )
+        context = {
+            'team_stats': team_stats
+        }
+        return render(request, template_name='./api/team_stats.html', context=context)
+
+
+@dataclasses.dataclass
+class TeamLink():
+    team_name: str
+    team_icon_url: str
+    team_id: int
+
+
+class TeamsListView(QueryMixin, ListView):
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        query_results = self.run_query(
+            sql_filepath='./api/sql/available_teams.sql',
+            league_season=request.GET.get('season') or datetime.datetime.now().year - 1
+        )
+        teams = [TeamLink(*team) for team in query_results]
+        if len(query_results) > 0:
+            context = {
+                'teams': teams
+            }
+            return render(request, template_name='./api/available_teams.html', context=context)
+        return HttpResponse(f"No teams found")
+
+
+class UpcomingMatchesForTeam(QueryMixin, ListView):
+
+    def get(self, request: HttpRequest, team_id: int, *args, **kwargs) -> HttpResponse:
+        query_results = self.run_query(
+            sql_filepath='./api/sql/team_upcoming.sql',
+            team_id=team_id,
+            league_season=datetime.datetime.now().year - 1
+        )
+
+        results = [UpcomingMatch(*match) for match in query_results]
+
+        if len(query_results) > 0:
+            context = {
+                'matches': results
+            }
+            return render(request, template_name='./api/upcoming_matches.html', context=context)
+        return HttpResponse(f"The team has no matches")

@@ -1,8 +1,10 @@
-from typing import Final
 from datetime import datetime as _dt
+from typing import Final
 
+from django.db import connection
 
 from Bundesliga_sdk.api import BundesligaAPI
+from api.utils import _read_file
 
 
 class BundesligaAPIMixin:
@@ -29,4 +31,24 @@ class ObjectSearchMixin:
             return True
         except:
             return False
-    
+
+
+class QueryMixin:
+
+    def is_nil_result(self, result: tuple) -> bool:
+        for elem in result:
+            if elem != None:
+                return False
+        return True
+
+    def format_query(self, sql_filepath: str, **kwargs) -> str:
+        query = _read_file(sql_filepath)
+        return query.format(**kwargs)
+
+    def run_query(self, sql_filepath: str, all: bool = True, **kwargs):
+        sql_query = self.format_query(sql_filepath, **kwargs)
+        with connection.cursor() as cur:
+            cur.execute(sql_query)
+            results = cur.fetchall() if all else cur.fetchone()
+
+        return results
